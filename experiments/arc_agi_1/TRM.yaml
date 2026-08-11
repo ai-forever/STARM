@@ -1,0 +1,28 @@
+hydra:
+  searchpath:
+    - /config
+
+defaults:
+  - cfg_pretrain
+  - override arch: hrm_v2DG
+  - _self_
+
+data_path: dataset/data/arc-aug-1000
+
+arch:
+  L_layers: 2
+  H_layers: 2
+
+  L_cycles: 4
+  H_cycles: 3
+
+  grad_through_last_L: 4
+  grad_through_last_H: 1
+
+  no_ACT_continue: True
+  drop_H_transformer: True
+
+epochs: 300000
+eval_interval: 10000
+
+use_ema: True

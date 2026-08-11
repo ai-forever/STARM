@@ -1,0 +1,23 @@
+name: hrm.dense@HierarchicalReasoningModel_ACTV2Dropout
+loss:
+  name: losses@ACTLossHead
+  loss_type: stablemax_cross_entropy
+
+halt_exploration_prob: 0.1
+halt_max_steps: 16
+
+H_cycles: 1  # kept for compatibility
+H_layers: 8
+
+hidden_size: 512
+num_heads: 8
+expansion: 4
+
+puzzle_emb_ndim: ${.hidden_size}
+
+pos_encodings: rope
+
+embed_dropout_p: 0.1
+qkv_dropout_p: 0.1
+residual_dropout_p: 0.1
+ffn_dropout_p: 0.1

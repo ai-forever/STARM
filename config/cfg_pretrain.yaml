@@ -1,4 +1,4 @@
-# ARC training config
+# Training config
 
 defaults:
   - arch: hrm_v1
@@ -24,8 +24,13 @@ lr_warmup_steps: 2000
 # Standard hyperparameter settings for LM, as used in Llama
 beta1: 0.9
 beta2: 0.95
+
 weight_decay: 0.1
 puzzle_emb_weight_decay: 0.1
 
 # Hyperparams - Puzzle embeddings training
 puzzle_emb_lr: 1e-2
+
+# Reproducibility
+seed: 125
+resume: True

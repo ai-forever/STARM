@@ -1,0 +1,54 @@
+name: hrm.hrm_act_v2DG@HierarchicalReasoningModel_ACTV2DG
+loss:
+  name: losses@ACTLossHead
+  loss_type: stablemax_cross_entropy
+
+halt_exploration_prob: 0.1
+halt_max_steps: 16
+
+H_cycles: 2
+L_cycles: 2
+
+H_layers: 4
+L_layers: 4
+
+hidden_size: 512
+num_heads: 8  # min(2, hidden_size // 64)
+expansion: 4
+
+puzzle_emb_ndim: ${.hidden_size}
+
+pos_encodings: rope
+
+embed_dropout_p: 0.0
+qkv_dropout_p: 0.0
+residual_dropout_p: 0.0
+ffn_dropout_p: 0.0
+
+H_dropout_p: 0.0
+L_dropout_p: 0.0
+
+grad_through_last_H: 1
+grad_through_last_L: 1
+
+use_conv: False
+drop_H_transformer: False
+
+noise_intensity: 0.0
+
+embed_dim: ${.hidden_size}
+
+tied_embeddings: False
+
+uplift: 0
+
+no_ACT_continue: False
+
+L_gate: False
+
+L_trust_region: 0.0
+
+norm_after_L_step: False
+
+randomize_H_depth: False
+

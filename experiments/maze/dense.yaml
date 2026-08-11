@@ -1,0 +1,27 @@
+hydra:
+  searchpath:
+    - /config
+
+defaults:
+  - cfg_pretrain
+  - override arch: dense
+  - _self_
+
+data_path: dataset/data/maze-30x30-hard-1k
+
+arch:
+  H_layers: 8
+  
+  halt_max_steps: 1
+  
+  act_enabled: false
+  
+  embed_dropout_p: 0.2
+  qkv_dropout_p: 0.2
+  residual_dropout_p: 0.2
+  ffn_dropout_p: 0.2
+
+extra_steps: 0
+
+epochs: 54000
+eval_interval: 500

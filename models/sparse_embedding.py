@@ -1,8 +1,8 @@
 from typing import Union
 
 import torch
-from torch import nn
 import torch.distributed as dist
+from torch import nn
 from torch.optim.optimizer import Optimizer, ParamsT
 
 from models.common import trunc_normal_init_
@@ -29,7 +29,7 @@ class CastedSparseEmbedding(nn.Module):
         if not self.training:
             # Test mode, no gradient
             return self.weights[inputs].to(self.cast_to)
-            
+
         # Training mode, fill puzzle embedding from weights
         with torch.no_grad():
             self.local_weights.copy_(self.weights[inputs])
@@ -40,12 +40,12 @@ class CastedSparseEmbedding(nn.Module):
 
 class CastedSparseEmbeddingSignSGD_Distributed(Optimizer):
     def __init__(
-        self,
-        params: ParamsT,
+            self,
+            params: ParamsT,
 
-        world_size: int,
-        lr: Union[float, torch.Tensor] = 1e-3,
-        weight_decay: float = 1e-2,
+            world_size: int,
+            lr: Union[float, torch.Tensor] = 1e-3,
+            weight_decay: float = 1e-2,
     ):
         if not 0.0 <= lr:
             raise ValueError(f"Invalid learning rate: {lr}")
@@ -66,7 +66,7 @@ class CastedSparseEmbeddingSignSGD_Distributed(Optimizer):
             local_weights_grad = None
             local_ids = None
             weights = None
-            
+
             assert len(group["params"]) == 3
             for p in group["params"]:
                 if p.requires_grad:
@@ -77,18 +77,18 @@ class CastedSparseEmbeddingSignSGD_Distributed(Optimizer):
                     weights = p
                 else:
                     assert False
-                
+
             assert local_weights_grad is not None
             assert local_ids is not None
             assert weights is not None
-        
+
             # Apply SignSGD
             # Adam ≈ SignSGD if gradient is very sparse
             _sparse_emb_signsgd_dist(
                 local_weights_grad,
                 local_ids,
                 weights,
-                
+
                 lr=group["lr"],
                 weight_decay=group["weight_decay"],
                 world_size=group["world_size"]
@@ -96,26 +96,27 @@ class CastedSparseEmbeddingSignSGD_Distributed(Optimizer):
 
 
 def _sparse_emb_signsgd_dist(
-    local_weights_grad: torch.Tensor,
-    local_ids: torch.Tensor,
-    weights: torch.Tensor,
-    
-    lr: float,
-    weight_decay: float,
-    world_size: int
+        local_weights_grad: torch.Tensor,
+        local_ids: torch.Tensor,
+        weights: torch.Tensor,
+
+        lr: float,
+        weight_decay: float,
+        world_size: int
 ) -> None:
     N, D = local_weights_grad.shape
-    
+
     # All-gather
     all_weights_grad = local_weights_grad
     all_ids = local_ids
 
     if world_size > 1:
-        all_weights_grad = torch.empty((world_size * N, D), dtype=local_weights_grad.dtype, device=local_weights_grad.device)
-        all_ids = torch.empty(world_size * N,               dtype=local_ids.dtype,          device=local_ids.device)
-    
+        all_weights_grad = torch.empty((world_size * N, D), dtype=local_weights_grad.dtype,
+                                       device=local_weights_grad.device)
+        all_ids = torch.empty(world_size * N, dtype=local_ids.dtype, device=local_ids.device)
+
         dist.all_gather_into_tensor(all_weights_grad, local_weights_grad)
-        dist.all_gather_into_tensor(all_ids,          local_ids)
+        dist.all_gather_into_tensor(all_ids, local_ids)
 
     # Unique
     grad_ids, inv = all_ids.unique(return_inverse=True)

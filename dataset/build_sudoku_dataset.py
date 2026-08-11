@@ -1,16 +1,15 @@
-from typing import Optional
-import os
 import csv
 import json
-import numpy as np
+import os
+from typing import Optional
 
+import numpy as np
 from argdantic import ArgParser
+from huggingface_hub import hf_hub_download
 from pydantic import BaseModel
 from tqdm import tqdm
-from huggingface_hub import hf_hub_download
 
 from common import PuzzleDatasetMetadata
-
 
 cli = ArgParser()
 
@@ -27,7 +26,7 @@ class DataProcessConfig(BaseModel):
 def shuffle_sudoku(board: np.ndarray, solution: np.ndarray):
     # Create a random digit mapping: a permutation of 1..9, with zero (blank) unchanged
     digit_map = np.pad(np.random.permutation(np.arange(1, 10)), (1, 0))
-    
+
     # Randomly decide whether to transpose.
     transpose_flag = np.random.rand() < 0.5
 
@@ -61,14 +60,14 @@ def convert_subset(set_name: str, config: DataProcessConfig):
     # Read CSV
     inputs = []
     labels = []
-    
+
     with open(hf_hub_download(config.source_repo, f"{set_name}.csv", repo_type="dataset"), newline="") as csvfile:
         reader = csv.reader(csvfile)
         next(reader)  # Skip header
         for source, q, a, rating in reader:
             if (config.min_difficulty is None) or (int(rating) >= config.min_difficulty):
                 assert len(q) == 81 and len(a) == 81
-                
+
                 inputs.append(np.frombuffer(q.replace('.', '0').encode(), dtype=np.uint8).reshape(9, 9) - ord('0'))
                 labels.append(np.frombuffer(a.encode(), dtype=np.uint8).reshape(9, 9) - ord('0'))
 
@@ -87,10 +86,10 @@ def convert_subset(set_name: str, config: DataProcessConfig):
     results = {k: [] for k in ["inputs", "labels", "puzzle_identifiers", "puzzle_indices", "group_indices"]}
     puzzle_id = 0
     example_id = 0
-    
+
     results["puzzle_indices"].append(0)
     results["group_indices"].append(0)
-    
+
     for orig_inp, orig_out in zip(tqdm(inputs), labels):
         for aug_idx in range(1 + num_augments):
             # First index is not augmented
@@ -104,24 +103,24 @@ def convert_subset(set_name: str, config: DataProcessConfig):
             results["labels"].append(out)
             example_id += 1
             puzzle_id += 1
-            
+
             results["puzzle_indices"].append(example_id)
             results["puzzle_identifiers"].append(0)
-            
+
         # Push group
         results["group_indices"].append(puzzle_id)
-        
+
     # To Numpy
     def _seq_to_numpy(seq):
         arr = np.concatenate(seq).reshape(len(seq), -1)
-        
+
         assert np.all((arr >= 0) & (arr <= 9))
         return arr + 1
-    
+
     results = {
         "inputs": _seq_to_numpy(results["inputs"]),
         "labels": _seq_to_numpy(results["labels"]),
-        
+
         "group_indices": np.array(results["group_indices"], dtype=np.int32),
         "puzzle_indices": np.array(results["puzzle_indices"], dtype=np.int32),
         "puzzle_identifiers": np.array(results["puzzle_identifiers"], dtype=np.int32),
@@ -131,13 +130,13 @@ def convert_subset(set_name: str, config: DataProcessConfig):
     metadata = PuzzleDatasetMetadata(
         seq_len=81,
         vocab_size=10 + 1,  # PAD + "0" ... "9"
-        
+
         pad_id=0,
         ignore_label_id=0,
-        
+
         blank_identifier_id=0,
         num_puzzle_identifiers=1,
-        
+
         total_groups=len(results["group_indices"]) - 1,
         mean_puzzle_examples=1,
         sets=["all"]
@@ -146,14 +145,14 @@ def convert_subset(set_name: str, config: DataProcessConfig):
     # Save metadata as JSON.
     save_dir = os.path.join(config.output_dir, set_name)
     os.makedirs(save_dir, exist_ok=True)
-    
+
     with open(os.path.join(save_dir, "dataset.json"), "w") as f:
         json.dump(metadata.model_dump(), f)
-        
+
     # Save data
     for k, v in results.items():
         np.save(os.path.join(save_dir, f"all__{k}.npy"), v)
-        
+
     # Save IDs mapping (for visualization only)
     with open(os.path.join(config.output_dir, "identifiers.json"), "w") as f:
         json.dump(["<blank>"], f)

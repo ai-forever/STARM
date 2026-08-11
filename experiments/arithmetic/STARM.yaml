@@ -1,0 +1,48 @@
+hydra:
+  searchpath:
+    - /config
+
+defaults:
+  - cfg_pretrain
+  - override arch: hrm_v2DG
+  - _self_
+
+data_path: dataset/data/arithmetic
+
+global_batch_size: 4096
+
+arch:
+  L_layers: 4
+  H_layers: 4
+
+  L_cycles: 2
+  H_cycles: 4
+
+  grad_through_last_L: 2
+  grad_through_last_H: 2
+
+  L_gate: True
+  L_trust_region: 0.7
+  norm_after_L_step: True
+
+  use_conv: False
+  drop_H_transformer: True
+
+  embed_dropout_p: 0.025
+  qkv_dropout_p: 0.025
+  residual_dropout_p: 0.025
+  ffn_dropout_p: 0.025
+
+  H_dropout_p: 0.01
+  L_dropout_p: 0.01
+
+  noise_intensity: 0.005
+
+lr: 0.0001
+lr_scheduler: exponential
+puzzle_emb_lr: 0.01
+
+epochs: 2000
+eval_interval: 50
+
+use_ema: True

@@ -1,0 +1,13 @@
+hydra:
+  searchpath:
+    - /config
+
+defaults:
+  - cfg_pretrain
+  - override arch: hrm_v1
+  - _self_
+
+data_path: dataset/data/game_of_life
+
+epochs: 2000
+eval_interval: 50

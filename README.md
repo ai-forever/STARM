@@ -1,196 +1,178 @@
-# Hierarchical Reasoning Model
+# STARM: Single Task Algorithmic Reasoning Models
 
-![](./assets/hrm.png)
+STARM - это рекурсивная архитектура для решения алгоритмических задач. Небольшая модель многократно применяет один и тот
+же вычислительный блок, постепенно уточняя латентное представление решения. Такой подход позволяет обходить модели с
+существенно бо́льшим числом параметров на задачах, требующих строгого следования алгоритму.
 
-Reasoning, the process of devising and executing complex goal-oriented action sequences, remains a critical challenge in AI.
-Current large language models (LLMs) primarily employ Chain-of-Thought (CoT) techniques, which suffer from brittle task decomposition, extensive data requirements, and high latency. Inspired by the hierarchical and multi-timescale processing in the human brain, we propose the Hierarchical Reasoning Model (HRM), a novel recurrent architecture that attains significant computational depth while maintaining both training stability and efficiency.
-HRM executes sequential reasoning tasks in a single forward pass without explicit supervision of the intermediate process, through two interdependent recurrent modules: a high-level module responsible for slow, abstract planning, and a low-level module handling rapid, detailed computations. With only 27 million parameters, HRM achieves exceptional performance on complex reasoning tasks using only 1000 training samples. The model operates without pre-training or CoT data, yet achieves nearly perfect performance on challenging tasks including complex Sudoku puzzles and optimal path finding in large mazes.
-Furthermore, HRM outperforms much larger models with significantly longer context windows on the Abstraction and Reasoning Corpus (ARC), a key benchmark for measuring artificial general intelligence capabilities.
-These results underscore HRM’s potential as a transformative advancement toward universal computation and general-purpose reasoning systems.
+![](./assets/STARM.png)
 
-Read Our Paper: [https://arxiv.org/abs/2506.21734](https://arxiv.org/abs/2506.21734)
+Основные результаты: STARM превосходит специализированный трансформер того же размера и демонстрирует лучшую способность
+к обобщению за пределы обучающего распределения. На нескольких доменах модель превосходит LLM с существенно бо́льшим
+числом параметров.
 
-**Join Our Discord Community: [https://discord.gg/sapient](https://discord.gg/sapient)**
+📖 [Полная версия статьи]()
 
+## Поддерживаемые задачи
 
-## Quick Start Guide 🚀
+| Домен        | Задача                                                    |
+|--------------|-----------------------------------------------------------|
+| ARC-AGI-1    | Поиск абстрактных закономерностей и преобразований        |
+| ARC-AGI-2    | Решение усложненных задач на абстрактное мышление         |
+| Арифметика   | Восстановление последовательности арифметических операций |
+| Игра в жизнь | Предсказание состояний клеточного автомата                |
+| Лабиринты    | Поиск кратчайшего пути в лабиринте                        |
+| Судоку       | Заполнение сетки с учетом ограничений                     |
 
-### Prerequisites ⚙️
+![Примеры датасетов](./assets/datasets.png)
 
-Ensure PyTorch and CUDA are installed. The repo needs CUDA extensions to be built. If not present, run the following commands:
+## Быстрый старт 🚀
 
-```bash
-# Install CUDA 12.6
-CUDA_URL=https://developer.download.nvidia.com/compute/cuda/12.6.3/local_installers/cuda_12.6.3_560.35.05_linux.run
+### Требования
 
-wget -q --show-progress --progress=bar:force:noscroll -O cuda_installer.run $CUDA_URL
-sudo sh cuda_installer.run --silent --toolkit --override
-
-export CUDA_HOME=/usr/local/cuda-12.6
-
-# Install PyTorch with CUDA 12.6
-PYTORCH_INDEX_URL=https://download.pytorch.org/whl/cu126
-
-pip3 install torch torchvision torchaudio --index-url $PYTORCH_INDEX_URL
-
-# Additional packages for building extensions
-pip3 install packaging ninja wheel setuptools setuptools-scm
-```
-
-Then install FlashAttention. For Hopper GPUs, install FlashAttention 3
+Проект распространяется с [`dockerfile`](./dockerfile) и [`requirements.txt`](./requirements.txt). Рекомендуется
+развернуть окружение в контейнере:
 
 ```bash
-git clone git@github.com:Dao-AILab/flash-attention.git
-cd flash-attention/hopper
-python setup.py install
+docker build -t starm .
 ```
 
-For Ampere or earlier GPUs, install FlashAttention 2
-
-```bash
-pip3 install flash-attn
-```
-
-## Install Python Dependencies 🐍
+Для установки без Docker выполните:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## W&B Integration 📈
+### Интеграция с ClearML 📈
 
-This project uses [Weights & Biases](https://wandb.ai/) for experiment tracking and metric visualization. Ensure you're logged in:
+Для отслеживания экспериментов и визуализации метрик используется [ClearML](https://clear.ml/docs/latest/docs/). Перед
+запуском задайте учётные данные:
 
 ```bash
-wandb login
+export CLEARML_API_ACCESS_KEY=<access-key>
+export CLEARML_API_SECRET_KEY=<secret-key>
 ```
 
-## Run Experiments
+### Подготовка данных
 
-### Quick Demo: Sudoku Solver 💻🗲
+#### Получение исходных данных
 
-Train a master-level Sudoku AI capable of solving extremely difficult puzzles on a modern laptop GPU. 🧩
-
-```bash
-# Download and build Sudoku dataset
-python dataset/build_sudoku_dataset.py --output-dir data/sudoku-extreme-1k-aug-1000  --subsample-size 1000 --num-aug 1000
-
-# Start training (single GPU, smaller batch size)
-OMP_NUM_THREADS=8 python pretrain.py data_path=data/sudoku-extreme-1k-aug-1000 epochs=20000 eval_interval=2000 global_batch_size=384 lr=7e-5 puzzle_emb_lr=7e-5 weight_decay=1.0 puzzle_emb_weight_decay=1.0
-```
-
-Runtime: ~10 hours on a RTX 4070 laptop GPU
-
-## Trained Checkpoints 🚧
-
- - [ARC-AGI-2](https://huggingface.co/sapientinc/HRM-checkpoint-ARC-2)
- - [Sudoku 9x9 Extreme (1000 examples)](https://huggingface.co/sapientinc/HRM-checkpoint-sudoku-extreme)
- - [Maze 30x30 Hard (1000 examples)](https://huggingface.co/sapientinc/HRM-checkpoint-maze-30x30-hard)
-
-To use the checkpoints, see Evaluation section below.
-
-## Full-scale Experiments 🔵
-
-Experiments below assume an 8-GPU setup.
-
-### Dataset Preparation
+Инициализируйте Git-подмодули с датасетами ARC-AGI:
 
 ```bash
-# Initialize submodules
 git submodule update --init --recursive
-
-# ARC-1
-python dataset/build_arc_dataset.py  # ARC offical + ConceptARC, 960 examples
-# ARC-2
-python dataset/build_arc_dataset.py --dataset-dirs dataset/raw-data/ARC-AGI-2/data --output-dir data/arc-2-aug-1000  # ARC-2 official, 1120 examples
-
-# Sudoku-Extreme
-python dataset/build_sudoku_dataset.py  # Full version
-python dataset/build_sudoku_dataset.py --output-dir data/sudoku-extreme-1k-aug-1000  --subsample-size 1000 --num-aug 1000  # 1000 examples
-
-# Maze
-python dataset/build_maze_dataset.py  # 1000 examples
 ```
 
-### Dataset Visualization
-
-Explore the puzzles visually:
-
-* Open `puzzle_visualizer.html` in your browser.
-* Upload the generated dataset folder located in `data/...`.
-
-## Launch experiments
-
-### Small-sample (1K)
-
-ARC-1:
+Сгенерируйте исходные данные для синтетических доменов:
 
 ```bash
-OMP_NUM_THREADS=8 torchrun --nproc-per-node 8 pretrain.py 
+python dataset/raw-data/arithmetic.py
+python dataset/raw-data/game_of_life.py
 ```
 
-*Runtime:* ~24 hours
+Данные для лабиринтов и судоку будут автоматически загружены при подготовке датасетов (
+см. [ниже](#подготовка-датасетов)).
 
-ARC-2:
+### Подготовка датасетов
+
+ARC-AGI-1, включая официальный набор ARC и ConceptARC:
 
 ```bash
-OMP_NUM_THREADS=8 torchrun --nproc-per-node 8 pretrain.py data_path=data/arc-2-aug-1000
+python dataset/build_arc_dataset.py
 ```
 
-*Runtime:* ~24 hours (checkpoint after 8 hours is often sufficient)
-
-Sudoku Extreme (1k):
+ARC-AGI-2:
 
 ```bash
-OMP_NUM_THREADS=8 torchrun --nproc-per-node 8 pretrain.py data_path=data/sudoku-extreme-1k-aug-1000 epochs=20000 eval_interval=2000 lr=1e-4 puzzle_emb_lr=1e-4 weight_decay=1.0 puzzle_emb_weight_decay=1.0
+python dataset/build_arc_dataset.py \
+  --dataset-dirs dataset/raw-data/ARC-AGI-2/data \
+  --output-dir data/arc-2-aug-1000
 ```
 
-*Runtime:* ~10 minutes
-
-Maze 30x30 Hard (1k):
+Остальные домены:
 
 ```bash
-OMP_NUM_THREADS=8 torchrun --nproc-per-node 8 pretrain.py data_path=data/maze-30x30-hard-1k epochs=20000 eval_interval=2000 lr=1e-4 puzzle_emb_lr=1e-4 weight_decay=1.0 puzzle_emb_weight_decay=1.0
+python dataset/build_sudoku_dataset.py
+python dataset/build_maze_dataset.py
+python dataset/build_arithmetic_dataset.py
+python dataset/build_gol_dataset.py
 ```
 
-*Runtime:* ~1 hour
+Скрипты подготовки создают обучающие и тестовые выборки в `.npy` формате.
 
-### Full Sudoku-Hard
+### Обучение
+
+Базовая конфигурация обучения находится в [`config/cfg_pretrain.yaml`](./config/cfg_pretrain.yaml). Архитектуры описаны
+в [`config/arch`](./config/cfg_pretrain.yaml):
+
+- [`dense.yaml`](./config/arch/dense.yaml) — ванильный Transformer;
+- [`hrm_v1.yaml`](./config/arch/hrm_v1.yaml) — базовая HRM;
+- [`hrm_v2DG.yaml`](./config/arch/hrm_v2DG.yaml) — конфигурация TRM/URM/STARM.
+
+Готовые конфигурации для каждой пары «домен–модель» лежат в `experiments/<domain>/`.
+
+Пример запуска обучения STARM на задаче "Игра в жизнь":
 
 ```bash
-OMP_NUM_THREADS=8 torchrun --nproc-per-node 8 pretrain.py data_path=data/sudoku-hard-full epochs=100 eval_interval=10 lr_min_ratio=0.1 global_batch_size=2304 lr=3e-4 puzzle_emb_lr=3e-4 weight_decay=0.1 puzzle_emb_weight_decay=0.1 arch.loss.loss_type=softmax_cross_entropy arch.L_cycles=8 arch.halt_max_steps=8 arch.pos_encodings=learned
+python pretrain.py --config-dir=experiments/game_of_life --config-name=STARM
 ```
 
-*Runtime:* ~2 hours
+Аналогично для других доменов и архитектур.
 
-## Evaluation
+### Оценка качества
 
-Evaluate your trained models:
+Во время обучения модель автоматически оценивается на подготовленных тестовых наборах. Это позволяет одновременно
+отслеживать качество внутри обучающего распределения и способность модели к обобщению.
 
-* Check `eval/exact_accuracy` in W&B.
-* For ARC-AGI, follow these additional steps:
+Основная метрика — `exact accuracy`: предсказание считается правильным только при **полном совпадении** с целевой
+последовательностью.
+
+#### Test‑time scaling
+
+Для дополнительного анализа поведения модели при изменении вычислительного бюджета (test‑time scaling) используйте
+скрипт [`evaluate.py`](./evaluate.py).
+
+![](./assets/metrics-test-time-scaling.png)
+
+Пример запуска при добавлении 128 дополнительных ACT-циклов к тем, что были разрешены модели при обучении:
 
 ```bash
-OMP_NUM_THREADS=8 torchrun --nproc-per-node 8 evaluate.py checkpoint=<CHECKPOINT_PATH>
+python evaluate.py checkpoint="/path/to/model/step_14640" extra_steps=128
 ```
 
-* Then use the provided `arc_eval.ipynb` notebook to finalize and inspect your results.
+Параметры test‑time scaling задаются флагами командной строки.
 
-## Notes
+#### ARC-AGI pass@k
 
- - Small-sample learning typically exhibits accuracy variance of around ±2 points.
- - For Sudoku-Extreme (1,000-example dataset), late-stage overfitting may cause numerical instability during training and Q-learning. It is advisable to use early stopping once the training accuracy approaches 100%.
+Для финальной оценки моделей на ARC-AGI используйте ноутбук [`arc_eval.ipynb`](./arc_eval.ipynb). Он содержит обработку
+предсказаний и расчет метрики `pass@k`.
 
-## Citation 📜
+### Инференс
 
-```bibtex
-@misc{wang2025hierarchicalreasoningmodel,
-      title={Hierarchical Reasoning Model}, 
-      author={Guan Wang and Jin Li and Yuhao Sun and Xing Chen and Changling Liu and Yue Wu and Meng Lu and Sen Song and Yasin Abbasi Yadkori},
-      year={2025},
-      eprint={2506.21734},
-      archivePrefix={arXiv},
-      primaryClass={cs.AI},
-      url={https://arxiv.org/abs/2506.21734}, 
-}
+Для программного инференса готовой модели используйте [`inference.py`](./inference.py):
+
+```bash
+python inference.py \
+    --checkpoint /path/to/model/step_14640 \
+    --output_dir ./predictions
 ```
+
+## Структура проекта
+
+```text
+.
+├── config/                 # Базовые параметры и конфигурации архитектур
+├── dataset/                # Подготовка датасетов и исходные данные
+├── experiments/            # Конфигурации моделей для каждого домена
+├── models/                 # Реализации архитектур, слоев и оптимизаторов
+├── arc_eval.ipynb          # Финальная оценка на ARC-AGI
+├── evaluate.py             # Оценка качества
+├── inference.py            # Инференс модели
+├── pretrain.py             # Обучение
+├── puzzle_dataset.py       # Загрузка и обработка задач
+└── requirements.txt        # Python-зависимости
+```
+
+## Лицензия
+
+Условия использования проекта приведены в файле [LICENSE](./LICENSE). Для входящих в репозиторий сторонних датасетов
+могут действовать отдельные лицензии.

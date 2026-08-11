@@ -1,0 +1,28 @@
+hydra:
+  searchpath:
+    - /config
+
+defaults:
+  - cfg_pretrain
+  - override arch: hrm_v2DG
+  - _self_
+
+data_path: dataset/data/sudoku-extreme-full
+
+arch:
+  L_layers: 2
+  H_layers: 2
+
+  L_cycles: 6
+  H_cycles: 3
+
+  grad_through_last_L: 6
+  grad_through_last_H: 1
+
+  no_ACT_continue: True
+  drop_H_transformer: True
+
+epochs: 2000
+eval_interval: 50
+
+use_ema: True

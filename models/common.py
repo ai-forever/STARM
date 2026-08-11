@@ -1,7 +1,6 @@
 import math
 
 import torch
-from torch import nn
 
 
 def trunc_normal_init_(tensor: torch.Tensor, std: float = 1.0, lower: float = -2.0, upper: float = 2.0):

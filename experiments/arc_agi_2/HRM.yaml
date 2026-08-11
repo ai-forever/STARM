@@ -1,0 +1,13 @@
+hydra:
+  searchpath:
+    - /config
+
+defaults:
+  - cfg_pretrain
+  - override arch: hrm_v1
+  - _self_
+
+data_path: dataset/data/arc-2-aug-1000
+
+epochs: 300000
+eval_interval: 5000

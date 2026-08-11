@@ -1,17 +1,15 @@
-from typing import Tuple
+from typing import Tuple, Optional
 
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 
 try:
-    from flash_attn_interface import flash_attn_func  # type: ignore[import]
+    from flash_attn_interface import flash_attn_func
 except ImportError:
-    # Fallback to FlashAttention 2
-    from flash_attn import flash_attn_func  # type: ignore[import]
+    from flash_attn import flash_attn_func
 
 from models.common import trunc_normal_init_
-
 
 CosSin = Tuple[torch.Tensor, torch.Tensor]
 
@@ -23,7 +21,7 @@ def _find_multiple(a, b):
 def rotate_half(x: torch.Tensor):
     """Rotates half the hidden dims of the input."""
     x1 = x[..., : x.shape[-1] // 2]
-    x2 = x[..., x.shape[-1] // 2 :]
+    x2 = x[..., x.shape[-1] // 2:]
     return torch.cat((-x2, x1), dim=-1)
 
 
@@ -53,10 +51,11 @@ class CastedLinear(nn.Module):
         self.bias = None
         if bias:
             # Zero init bias
-            self.bias = nn.Parameter(torch.zeros((out_features, )))
+            self.bias = nn.Parameter(torch.zeros((out_features,)))
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-        return F.linear(input, self.weight.to(input.dtype), bias=self.bias.to(input.dtype) if self.bias is not None else None)
+        return F.linear(input, self.weight.to(input.dtype),
+                        bias=self.bias.to(input.dtype) if self.bias is not None else None)
 
 
 class CastedEmbedding(nn.Module):
@@ -72,7 +71,7 @@ class CastedEmbedding(nn.Module):
         self.embedding_weight = nn.Parameter(
             trunc_normal_init_(torch.empty((num_embeddings, embedding_dim)), std=init_std)
         )
-        
+
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         return F.embedding(input, self.embedding_weight.to(self.cast_to))
 
@@ -106,7 +105,8 @@ class Attention(nn.Module):
         self.num_key_value_heads = num_key_value_heads
         self.causal = causal
 
-        self.qkv_proj = CastedLinear(self.hidden_size, (self.num_heads + 2 * self.num_key_value_heads) * self.head_dim, bias=False)
+        self.qkv_proj = CastedLinear(self.hidden_size, (self.num_heads + 2 * self.num_key_value_heads) * self.head_dim,
+                                     bias=False)
         self.o_proj = CastedLinear(self.output_size, self.hidden_size, bias=False)
 
     def forward(self, cos_sin: CosSin, hidden_states: torch.Tensor) -> torch.Tensor:
@@ -128,7 +128,52 @@ class Attention(nn.Module):
 
         # flash attn
         attn_output = flash_attn_func(q=query, k=key, v=value, causal=self.causal)
-        if isinstance(attn_output, tuple):  # fa2 and fa3 compatibility
+        if isinstance(attn_output, tuple):
+            attn_output = attn_output[0]
+
+        attn_output = attn_output.view(batch_size, seq_len, self.output_size)  # type: ignore
+        return self.o_proj(attn_output)
+
+
+class AttentionD(nn.Module):
+    def __init__(self, hidden_size, head_dim, num_heads, num_key_value_heads, causal=False):
+        super().__init__()
+
+        self.hidden_size = hidden_size
+        self.head_dim = head_dim
+        self.output_size = head_dim * num_heads
+        self.num_heads = num_heads
+        self.num_key_value_heads = num_key_value_heads
+        self.causal = causal
+
+        self.qkv_proj = CastedLinear(self.hidden_size, (self.num_heads + 2 * self.num_key_value_heads) * self.head_dim,
+                                     bias=False)
+        self.o_proj = CastedLinear(self.output_size, self.hidden_size, bias=False)
+
+    def forward(self, cos_sin: CosSin, hidden_states: torch.Tensor,
+                qkv_dropout_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+        batch_size, seq_len, _ = hidden_states.shape
+
+        # hidden_states: [bs, seq_len, num_heads, head_dim]
+        qkv = self.qkv_proj(hidden_states)
+
+        if qkv_dropout_mask is not None:
+            qkv = qkv * qkv_dropout_mask
+
+        # Split head
+        qkv = qkv.view(batch_size, seq_len, self.num_heads + 2 * self.num_key_value_heads, self.head_dim)
+        query = qkv[:, :, :self.num_heads]
+        key = qkv[:, :, self.num_heads: self.num_heads + self.num_key_value_heads]
+        value = qkv[:, :, self.num_heads + self.num_key_value_heads:]
+
+        # RoPE
+        if cos_sin is not None:
+            cos, sin = cos_sin
+            query, key = apply_rotary_pos_emb(query, key, cos, sin)
+
+        # flash attn
+        attn_output = flash_attn_func(q=query, k=key, v=value, causal=self.causal)
+        if isinstance(attn_output, tuple):
             attn_output = attn_output[0]
 
         attn_output = attn_output.view(batch_size, seq_len, self.output_size)  # type: ignore
@@ -141,11 +186,73 @@ class SwiGLU(nn.Module):
         inter = _find_multiple(round(expansion * hidden_size * 2 / 3), 256)
 
         self.gate_up_proj = CastedLinear(hidden_size, inter * 2, bias=False)
-        self.down_proj    = CastedLinear(inter, hidden_size, bias=False)
+        self.down_proj = CastedLinear(inter, hidden_size, bias=False)
 
     def forward(self, x):
         gate, up = self.gate_up_proj(x).chunk(2, dim=-1)
         return self.down_proj(F.silu(gate) * up)
+
+
+class SwiGLUD(nn.Module):
+    def __init__(self, hidden_size: int, expansion: float):
+        super().__init__()
+        inter = _find_multiple(round(expansion * hidden_size * 2 / 3), 256)
+
+        self.gate_up_proj = CastedLinear(hidden_size, inter * 2, bias=False)
+        self.down_proj = CastedLinear(inter, hidden_size, bias=False)
+
+    def forward(self, x, ffn_dropout_mask: Optional[torch.Tensor] = None):
+        gate, up = self.gate_up_proj(x).chunk(2, dim=-1)
+        activated = F.silu(gate) * up
+
+        if ffn_dropout_mask is not None:
+            activated = activated * ffn_dropout_mask
+
+        return self.down_proj(activated)
+
+
+class ConvSwiGLUD(nn.Module):
+    def __init__(
+            self,
+            hidden_size: int,
+            expansion: float,
+            conv_kernel: int = 2,
+            intermediate_size: Optional[int] = None,
+    ):
+        super().__init__()
+
+        inter = intermediate_size if intermediate_size is not None else _find_multiple(
+            round(expansion * hidden_size * 2 / 3), 256)
+        self.inter = inter
+
+        self.gate_up_proj = CastedLinear(hidden_size, inter * 2, bias=False)
+
+        # Depthwise Convolution
+        self.dwconv = nn.Conv1d(
+            in_channels=inter,
+            out_channels=inter,
+            kernel_size=conv_kernel,
+            padding=conv_kernel // 2,
+            groups=inter,
+            bias=True,
+        ).to(dtype=torch.bfloat16)
+
+        self.act = nn.SiLU()
+        self.down_proj = CastedLinear(inter, hidden_size, bias=False)
+
+    def forward(self, x: torch.Tensor, ffn_dropout_mask: Optional[torch.Tensor] = None):
+        gate, up = self.gate_up_proj(x).chunk(2, dim=-1)
+        x_ffn = self.act(gate) * up
+
+        x_conv = self.dwconv(x_ffn.transpose(1, 2).to(self.dwconv.weight.dtype))
+        x_conv = x_conv[..., :up.size(1)]
+        x_conv = self.act(x_conv)
+        x_conv = x_conv.transpose(1, 2).contiguous()
+
+        if ffn_dropout_mask is not None:
+            x_conv = x_conv * ffn_dropout_mask
+
+        return self.down_proj(x_conv)
 
 
 def rms_norm(hidden_states: torch.Tensor, variance_epsilon: float) -> torch.Tensor:
