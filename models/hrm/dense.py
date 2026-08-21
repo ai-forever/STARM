@@ -35,8 +35,8 @@ class HierarchicalReasoningModel_ACTV2DropoutInnerCarry:
     embed_dropout_mask: Optional[torch.Tensor] = None  # [B, S, hidden]
 
     H_qkv_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)
-    H_attn_residual_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)  # ← отдельно для attn
-    H_mlp_residual_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)  # ← отдельно для mlp
+    H_attn_residual_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)  # separate mask for attn
+    H_mlp_residual_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)  # separate mask for mlp
     H_ffn_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)
 
     def with_updated_states(self, z_H: torch.Tensor) -> 'HierarchicalReasoningModel_ACTV2DropoutInnerCarry':

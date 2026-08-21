@@ -26,8 +26,8 @@ class HierarchicalReasoningModel_ACTV2DGInnerCarry:
     L_dropout_mask: Optional[torch.Tensor] = None  # [B, 1, hidden]
 
     H_qkv_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)
-    H_attn_residual_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)  # ← отдельно для attn
-    H_mlp_residual_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)  # ← отдельно для mlp
+    H_attn_residual_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)  # separate mask for attn
+    H_mlp_residual_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)  # separate mask for mlp
     H_ffn_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)
 
     L_qkv_dropout_masks: List[Optional[torch.Tensor]] = field(default_factory=list)
@@ -169,7 +169,7 @@ class HierarchicalReasoningModel_ACTV2DGBlock(nn.Module):
 
     def forward(self, cos_sin: CosSin, hidden_states: torch.Tensor,
                 qkv_dropout_mask: Optional[torch.Tensor] = None,
-                attn_residual_dropout_mask: Optional[torch.Tensor] = None,  # ← отдельно
+                attn_residual_dropout_mask: Optional[torch.Tensor] = None,  # separate mask
                 mlp_residual_dropout_mask: Optional[torch.Tensor] = None,
                 ffn_dropout_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
 
