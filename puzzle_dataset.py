@@ -164,7 +164,7 @@ class PuzzleDataset(IterableDataset):
             worker_seed = self.config.seed + self._iters
 
             if worker_info is not None:
-                worker_seed += worker_info.id  # Добавляем смещение для воркера
+                worker_seed += worker_info.id  # Add a per-worker offset
 
             rng = np.random.Generator(np.random.Philox(seed=worker_seed))
 

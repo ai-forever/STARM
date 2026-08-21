@@ -43,15 +43,15 @@ def tokenize_example(masked_expr: str, mask_ops: str, target: int, token_to_id: 
 
 
 def key_func(item: Tuple) -> Tuple:
-    """Оригинальная функция группировки"""
+    """Original grouping function"""
     masked_expr, mask_ops, target = item
-    # Извлекаем цифры из masked_expr
+    # Extract the digits from masked_expr
     digits = tuple(int(ch) for ch in masked_expr if ch.isdigit())
     return (digits, target)
 
 
 def build_grouped_structure(examples: List[Tuple], token_to_id: Dict[str, int], max_len: int, pad_id: int):
-    """Максимально близко к оригиналу"""
+    """As close to the original as possible"""
     results = {k: [] for k in ["inputs", "labels", "puzzle_identifiers", "puzzle_indices", "group_indices"]}
     puzzle_id = 0
     example_id = 0

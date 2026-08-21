@@ -1,80 +1,81 @@
 # STARM: Single Task Algorithmic Reasoning Models
 
-STARM - это рекурсивная архитектура для решения алгоритмических задач. Небольшая модель многократно применяет один и тот
-же вычислительный блок, постепенно уточняя латентное представление решения. Такой подход позволяет обходить модели с
-существенно бо́льшим числом параметров на задачах, требующих строгого следования алгоритму.
+STARM is a recurrent architecture for solving algorithmic tasks. A small model repeatedly applies the same computational
+block, gradually refining the latent representation of the solution. This approach makes it possible to outperform models
+with substantially more parameters on tasks that require strict adherence to an algorithm.
 
-![](./assets/STARM.png)
+![](./assets/STARM_en.png)
 
-Основные результаты: STARM превосходит специализированный трансформер того же размера и демонстрирует лучшую способность
-к обобщению за пределы обучающего распределения. На нескольких доменах модель превосходит LLM с существенно бо́льшим
-числом параметров.
+Key results: STARM outperforms a specialized transformer of the same size and shows a better ability to generalize
+beyond the training distribution. Across several domains the model outperforms LLMs with substantially more parameters.
 
-📖 [Полная версия статьи](https://habr.com/ru/companies/sberbank/articles/1069794/)
+📖 [Full version of the article (in Russian)](https://habr.com/ru/companies/sberbank/articles/1069794/)
 
-## Поддерживаемые задачи
+🇷🇺 [README in Russian](./README_rus.md) | 🇨🇳 [中文 README](./README_zh.md)
 
-| Домен        | Задача                                                    |
-|--------------|-----------------------------------------------------------|
-| ARC-AGI-1    | Поиск абстрактных закономерностей и преобразований        |
-| ARC-AGI-2    | Решение усложненных задач на абстрактное мышление         |
-| Арифметика   | Восстановление последовательности арифметических операций |
-| Игра в жизнь | Предсказание состояний клеточного автомата                |
-| Лабиринты    | Поиск кратчайшего пути в лабиринте                        |
-| Судоку       | Заполнение сетки с учетом ограничений                     |
+## Supported tasks
 
-![Примеры датасетов](./assets/datasets.png)
+| Domain     | Task                                                |
+|------------|-----------------------------------------------------|
+| ARC-AGI-1  | Finding abstract patterns and transformations       |
+| ARC-AGI-2  | Solving harder abstract reasoning tasks             |
+| Arithmetic | Recovering a sequence of arithmetic operations      |
+| Game of Life | Predicting cellular automaton states                |
+| Maze       | Finding the shortest path through a maze            |
+| Sudoku     | Filling in a grid subject to constraints            |
 
-## Быстрый старт 🚀
+![Dataset examples](./assets/datasets_en.png)
 
-### Требования
+## Quick start 🚀
 
-Проект распространяется с [`dockerfile`](./dockerfile) и [`requirements.txt`](./requirements.txt). Рекомендуется
-развернуть окружение в контейнере:
+### Requirements
+
+The project ships with a [`dockerfile`](./dockerfile) and [`requirements.txt`](./requirements.txt). We recommend setting
+up the environment in a container:
 
 ```bash
 docker build -t starm .
 ```
 
-Для установки без Docker выполните:
+To install without Docker, run:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Интеграция с ClearML 📈
+### ClearML integration 📈
 
-Для отслеживания экспериментов и визуализации метрик используется [ClearML](https://clear.ml/docs/latest/docs/). Перед
-запуском задайте учётные данные:
+[ClearML](https://clear.ml/docs/latest/docs/) is used for experiment tracking and metric visualization. Set your
+credentials before launching:
 
 ```bash
 export CLEARML_API_ACCESS_KEY=<access-key>
 export CLEARML_API_SECRET_KEY=<secret-key>
 ```
 
-### Подготовка данных
+### Data preparation
 
-#### Получение исходных данных
+#### Getting the raw data
 
-Инициализируйте Git-подмодули с датасетами ARC-AGI:
+Initialize the Git submodules with the ARC-AGI datasets:
 
 ```bash
 git submodule update --init --recursive
 ```
 
-Сгенерируйте исходные данные для синтетических доменов:
+Generate the raw data for the synthetic domains:
 
 ```bash
 python dataset/raw-data/arithmetic.py
 python dataset/raw-data/game_of_life.py
 ```
 
-Данные для лабиринтов и судоку будут автоматически загружены при подготовке датасетов (
-см. [ниже](#подготовка-датасетов)).
+The data for mazes and sudoku is downloaded automatically during dataset preparation (
+see [below](#building-the-datasets)).
 
-### Подготовка датасетов
+### Building the datasets
 
-ARC-AGI-1, включая официальный набор ARC и ConceptARC:
+ARC-AGI-1, including the official ARC set and ConceptARC:
 
 ```bash
 python dataset/build_arc_dataset.py
@@ -88,7 +89,7 @@ python dataset/build_arc_dataset.py \
   --output-dir data/arc-2-aug-1000
 ```
 
-Остальные домены:
+The remaining domains:
 
 ```bash
 python dataset/build_sudoku_dataset.py
@@ -97,58 +98,57 @@ python dataset/build_arithmetic_dataset.py
 python dataset/build_gol_dataset.py
 ```
 
-Скрипты подготовки создают обучающие и тестовые выборки в `.npy` формате.
+The preparation scripts create training and test splits in `.npy` format.
 
-### Обучение
+### Training
 
-Базовая конфигурация обучения находится в [`config/cfg_pretrain.yaml`](./config/cfg_pretrain.yaml). Архитектуры описаны
-в [`config/arch`](./config/cfg_pretrain.yaml):
+The base training configuration lives in [`config/cfg_pretrain.yaml`](./config/cfg_pretrain.yaml). The architectures are
+described in [`config/arch`](./config/cfg_pretrain.yaml):
 
-- [`dense.yaml`](./config/arch/dense.yaml) — ванильный Transformer;
-- [`hrm_v1.yaml`](./config/arch/hrm_v1.yaml) — базовая HRM;
-- [`hrm_v2DG.yaml`](./config/arch/hrm_v2DG.yaml) — конфигурация TRM/URM/STARM.
+- [`dense.yaml`](./config/arch/dense.yaml) — vanilla Transformer;
+- [`hrm_v1.yaml`](./config/arch/hrm_v1.yaml) — baseline HRM;
+- [`hrm_v2DG.yaml`](./config/arch/hrm_v2DG.yaml) — TRM/URM/STARM configuration.
 
-Готовые конфигурации для каждой пары «домен–модель» лежат в `experiments/<domain>/`.
+Ready-made configurations for each domain–model pair live in `experiments/<domain>/`.
 
-Пример запуска обучения STARM на задаче "Игра в жизнь":
+Example of launching STARM training on the Game of Life task:
 
 ```bash
 python pretrain.py --config-dir=experiments/game_of_life --config-name=STARM
 ```
 
-Аналогично для других доменов и архитектур.
+The same pattern applies to the other domains and architectures.
 
-### Оценка качества
+### Evaluation
 
-Во время обучения модель автоматически оценивается на подготовленных тестовых наборах. Это позволяет одновременно
-отслеживать качество внутри обучающего распределения и способность модели к обобщению.
+During training the model is automatically evaluated on the prepared test sets. This makes it possible to track both
+in-distribution quality and the model's ability to generalize at the same time.
 
-Основная метрика — `exact accuracy`: предсказание считается правильным только при **полном совпадении** с целевой
-последовательностью.
+The main metric is `exact accuracy`: a prediction counts as correct only if it **matches the target sequence exactly**.
 
-#### Test‑time scaling
+#### Test-time scaling
 
-Для дополнительного анализа поведения модели при изменении вычислительного бюджета (test‑time scaling) используйте
-скрипт [`evaluate.py`](./evaluate.py).
+To further analyze how the model behaves as the compute budget changes (test-time scaling), use
+the [`evaluate.py`](./evaluate.py) script.
 
-![](./assets/metrics-test-time-scaling.png)
+![](./assets/metrics-test-time-scaling_en.png)
 
-Пример запуска при добавлении 128 дополнительных ACT-циклов к тем, что были разрешены модели при обучении:
+Example of a run that adds 128 extra ACT cycles on top of those the model was allowed during training:
 
 ```bash
 python evaluate.py checkpoint="/path/to/model/step_14640" extra_steps=128
 ```
 
-Параметры test‑time scaling задаются флагами командной строки.
+Test-time scaling parameters are set through command-line flags.
 
 #### ARC-AGI pass@k
 
-Для финальной оценки моделей на ARC-AGI используйте ноутбук [`arc_eval.ipynb`](./arc_eval.ipynb). Он содержит обработку
-предсказаний и расчет метрики `pass@k`.
+For the final evaluation of models on ARC-AGI, use the [`arc_eval.ipynb`](./arc_eval.ipynb) notebook. It contains the
+prediction post-processing and the `pass@k` metric computation.
 
-### Инференс
+### Inference
 
-Для программного инференса готовой модели используйте [`inference.py`](./inference.py):
+For programmatic inference with a trained model, use [`inference.py`](./inference.py):
 
 ```bash
 python inference.py \
@@ -156,23 +156,23 @@ python inference.py \
     --output_dir ./predictions
 ```
 
-## Структура проекта
+## Project structure
 
 ```text
 .
-├── config/                 # Базовые параметры и конфигурации архитектур
-├── dataset/                # Подготовка датасетов и исходные данные
-├── experiments/            # Конфигурации моделей для каждого домена
-├── models/                 # Реализации архитектур, слоев и оптимизаторов
-├── arc_eval.ipynb          # Финальная оценка на ARC-AGI
-├── evaluate.py             # Оценка качества
-├── inference.py            # Инференс модели
-├── pretrain.py             # Обучение
-├── puzzle_dataset.py       # Загрузка и обработка задач
-└── requirements.txt        # Python-зависимости
+├── config/                 # Base parameters and architecture configurations
+├── dataset/                # Dataset preparation and raw data
+├── experiments/            # Model configurations for each domain
+├── models/                 # Architecture, layer, and optimizer implementations
+├── arc_eval.ipynb          # Final evaluation on ARC-AGI
+├── evaluate.py             # Evaluation
+├── inference.py            # Model inference
+├── pretrain.py             # Training
+├── puzzle_dataset.py       # Task loading and processing
+└── requirements.txt        # Python dependencies
 ```
 
-## Лицензия
+## License
 
-Условия использования проекта приведены в файле [LICENSE](./LICENSE). Для входящих в репозиторий сторонних датасетов
-могут действовать отдельные лицензии.
+The terms of use are provided in the [LICENSE](./LICENSE) file. Third-party datasets included in the repository may be
+covered by separate licenses.
