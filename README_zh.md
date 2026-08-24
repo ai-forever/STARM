@@ -166,3 +166,14 @@ python inference.py \
 ## 许可证
 
 使用条款见 [LICENSE](./LICENSE) 文件。仓库中包含的第三方数据集可能受各自独立的许可证约束。
+
+## 参考文献
+
+STARM 的方法建立在以下工作之上：
+
+- **HRM** —— Guan Wang 等，*Hierarchical Reasoning Model*（2025）
+  —— [arXiv:2506.21734](https://arxiv.org/abs/2506.21734) | [代码](https://github.com/sapientinc/HRM)
+- **TRM** —— Alexia Jolicoeur-Martineau，*Less is More: Recursive Reasoning with Tiny Networks*（2025）
+  —— [arXiv:2510.04871](https://arxiv.org/abs/2510.04871) | [代码](https://github.com/SamsungSAILMontreal/TinyRecursiveModels)
+- **URM** —— Zitian Gao 等，*Universal Reasoning Model*（2025）
+  —— [arXiv:2512.14693](https://arxiv.org/abs/2512.14693) | [代码](https://github.com/UbiquantAI/URM)

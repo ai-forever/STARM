@@ -176,3 +176,14 @@ python inference.py \
 
 The terms of use are provided in the [LICENSE](./LICENSE) file. Third-party datasets included in the repository may be
 covered by separate licenses.
+
+## References
+
+The STARM approach builds on the following work:
+
+- **HRM** — Guan Wang et al., *Hierarchical Reasoning Model* (2025)
+  — [arXiv:2506.21734](https://arxiv.org/abs/2506.21734) | [code](https://github.com/sapientinc/HRM)
+- **TRM** — Alexia Jolicoeur-Martineau, *Less is More: Recursive Reasoning with Tiny Networks* (2025)
+  — [arXiv:2510.04871](https://arxiv.org/abs/2510.04871) | [code](https://github.com/SamsungSAILMontreal/TinyRecursiveModels)
+- **URM** — Zitian Gao et al., *Universal Reasoning Model* (2025)
+  — [arXiv:2512.14693](https://arxiv.org/abs/2512.14693) | [code](https://github.com/UbiquantAI/URM)
