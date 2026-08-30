@@ -7,7 +7,7 @@ defaults:
   - override arch: hrm_v2DG
   - _self_
 
-data_path: dataset/data/arc-aug-1000
+data_path: /home/jovyan/shares/SR008.fs2/aakornilov/datasets/arc-aug-1000
 
 arch:
   L_layers: 4
@@ -19,12 +19,6 @@ arch:
   grad_through_last_L: 2
   grad_through_last_H: 2
 
-  L_gate: True
-  norm_after_L_step: True
-
-  use_conv: True
-  drop_H_transformer: True
-
   embed_dropout_p: 0.025
   qkv_dropout_p: 0.025
   residual_dropout_p: 0.025
@@ -35,7 +29,18 @@ arch:
 
   noise_intensity: 0.003
 
-epochs: 300000
-eval_interval: 10000
+  use_conv: True
 
+  uplift: 0
+  halt_max_steps: 8
+
+  tied_embeddings: False
+  drop_H_transformer: True
+
+epochs: 300000
+
+
+resume: True
 use_ema: True
+
+seed: 125
