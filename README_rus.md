@@ -158,16 +158,35 @@ python inference.py \
     --output_dir ./predictions
 ```
 
+### HTTP API
+
+Обученную модель можно поднять как HTTP-сервис и обращаться к ней запросами — текст на входе,
+текст на выходе:
+
+```bash
+pip install -r api/requirements.txt
+./host_model --path_directory checkpoints/<project>/<run> --port 8080
+
+curl -s localhost:8080/generate -d '{"task": "sudoku", "input": "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79"}'
+```
+
+Поднять можно любой обученный в этом репозитории чекпоинт — для всех задач и всех архитектур
+из [`config/arch`](./config/arch), — а также чекпоинты с Hugging Face Hub
+в [следующем формате](https://huggingface.co/sapientinc/HRM-checkpoint-sudoku-extreme). Запросы обрабатываются
+поодиночке или батчами, поддерживается логика ACT. Подробности — в [`api/README.md`](./api/README.md).
+
 ## Структура проекта
 
 ```text
 .
+├── api/                    # HTTP-сервис для инференса обученной модели
 ├── config/                 # Базовые параметры и конфигурации архитектур
 ├── dataset/                # Подготовка датасетов и исходные данные
 ├── experiments/            # Конфигурации моделей для каждого домена
 ├── models/                 # Реализации архитектур, слоев и оптимизаторов
 ├── arc_eval.ipynb          # Финальная оценка на ARC-AGI
 ├── evaluate.py             # Оценка качества
+├── host_model              # Запуск HTTP API (обёртка над api/host_model.py)
 ├── inference.py            # Инференс модели
 ├── pretrain.py             # Обучение
 ├── puzzle_dataset.py       # Загрузка и обработка задач

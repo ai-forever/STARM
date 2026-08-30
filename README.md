@@ -156,16 +156,35 @@ python inference.py \
     --output_dir ./predictions
 ```
 
+### HTTP API
+
+A trained model can be served over HTTP and queried with requests — text in, text out:
+
+```bash
+pip install -r api/requirements.txt
+./host_model --path_directory checkpoints/<project>/<run> --port 8080
+
+curl -s localhost:8080/generate -d '{"task": "sudoku", "input": "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79"}'
+```
+
+Any checkpoint this repository trains can be served — every task, and every architecture in
+[`config/arch`](./config/arch) — as can checkpoints from the Hugging Face Hub
+in [this format](https://huggingface.co/sapientinc/HRM-checkpoint-sudoku-extreme). Prompts are answered
+one at a time or in batches, and ACT is supported. See [`api/README.md`](./api/README.md) for
+the details.
+
 ## Project structure
 
 ```text
 .
+├── api/                    # HTTP service for serving a trained model
 ├── config/                 # Base parameters and architecture configurations
 ├── dataset/                # Dataset preparation and raw data
 ├── experiments/            # Model configurations for each domain
 ├── models/                 # Architecture, layer, and optimizer implementations
 ├── arc_eval.ipynb          # Final evaluation on ARC-AGI
 ├── evaluate.py             # Evaluation
+├── host_model              # Starts the HTTP API (wrapper around api/host_model.py)
 ├── inference.py            # Model inference
 ├── pretrain.py             # Training
 ├── puzzle_dataset.py       # Task loading and processing

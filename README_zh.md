@@ -147,16 +147,34 @@ python inference.py \
     --output_dir ./predictions
 ```
 
+### HTTP API
+
+已训练的模型可以作为 HTTP 服务启动，通过请求进行调用——输入文本，输出文本：
+
+```bash
+pip install -r api/requirements.txt
+./host_model --path_directory checkpoints/<project>/<run> --port 8080
+
+curl -s localhost:8080/generate -d '{"task": "sudoku", "input": "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79"}'
+```
+
+本仓库训练出的任何检查点都可以部署——涵盖全部任务以及 [`config/arch`](./config/arch) 中的所有
+架构，也支持来自 Hugging Face Hub 的、采用[该格式](https://huggingface.co/sapientinc/HRM-checkpoint-sudoku-extreme)
+的检查点。请求可以单条处理，也可以批量处理，并且支持 ACT 逻辑。详情见
+[`api/README.md`](./api/README.md)。
+
 ## 项目结构
 
 ```text
 .
+├── api/                    # 用于部署已训练模型的 HTTP 服务
 ├── config/                 # 基础参数与架构配置
 ├── dataset/                # 数据集准备与原始数据
 ├── experiments/            # 各领域的模型配置
 ├── models/                 # 架构、层与优化器实现
 ├── arc_eval.ipynb          # ARC-AGI 上的最终评估
 ├── evaluate.py             # 评估
+├── host_model              # 启动 HTTP API（api/host_model.py 的封装）
 ├── inference.py            # 模型推理
 ├── pretrain.py             # 训练
 ├── puzzle_dataset.py       # 任务加载与处理
