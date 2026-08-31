@@ -1,0 +1,4 @@
+# Serving-only dependencies, on top of the project's requirements.txt.
+# Neither is installed by the project dockerfile.
+fastapi
+uvicorn
