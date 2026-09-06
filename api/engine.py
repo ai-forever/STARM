@@ -66,11 +66,19 @@ class Answer:
 
 
 class StarmEngine:
-    def __init__(self, loaded: LoadedModel, tokenizer: Tokenizer) -> None:
+    def __init__(
+        self,
+        loaded: LoadedModel,
+        tokenizer: Tokenizer,
+        identifiers_file: Optional[str] = None,
+    ) -> None:
         self.loaded = loaded
         self.tokenizer = tokenizer
         self._lock = threading.Lock()
-        self._puzzle_ids = _read_identifiers(loaded.checkpoint_dir)
+        self._identifiers_file = identifiers_file or os.path.join(
+            loaded.checkpoint_dir, "identifiers.json"
+        )
+        self._puzzle_ids = _read_identifiers(self._identifiers_file)
         # A one-row table is what a run has when its dataset wrote a single <blank>
         # identifier, and also when it set puzzle_emb_ndim: 0 and has no table at all.
         # Either way there is no per-task embedding to select, ARC or not.
@@ -79,9 +87,9 @@ class StarmEngine:
             # Nothing could be answered: every ARC request names a task id, and this file is
             # the only record of which ids the run's puzzle embeddings belong to.
             raise TokenizerError(
-                f"this is an ARC checkpoint but {loaded.checkpoint_dir}/identifiers.json is "
-                "missing or empty. It is the list of task ids the run was trained on, written "
-                "by the dataset build; copy it next to the checkpoint"
+                f"this is an ARC checkpoint but {self._identifiers_file} is missing or empty. "
+                "It is the list of task ids the run was trained on, written by the dataset "
+                "build; pass --identifiers, or copy the file next to the checkpoint"
             )
 
     # -- introspection ---------------------------------------------------------
@@ -194,9 +202,9 @@ class StarmEngine:
             )
         if not self._puzzle_ids:
             raise TokenizerError(
-                "puzzle_id cannot be resolved: no identifiers.json in the checkpoint "
-                f"directory ({self.loaded.checkpoint_dir}). It is the list of task ids this "
-                "run was trained on, written by the dataset build"
+                f"puzzle_id cannot be resolved: no identifiers at {self._identifiers_file}. "
+                "It is the list of task ids this run was trained on, written by the dataset "
+                "build; pass --identifiers to point at it"
             )
 
         index = self._puzzle_ids.get(given)
@@ -294,15 +302,17 @@ class StarmEngine:
         return (q_halt > preds["q_continue_logits"].to(torch.float32)).cpu().numpy()
 
 
-def _read_identifiers(checkpoint_dir: str) -> Dict[str, int]:
-    """Read ``identifiers.json`` from the checkpoint directory as task id -> index.
+def _read_identifiers(path: str) -> Dict[str, int]:
+    """Read an ``identifiers.json`` as task id -> index.
 
     ``build_arc_dataset.convert_dataset`` writes it as a list whose position is the integer
     the puzzle embedding is indexed by and whose value is the task id — ``"007bbfb7"`` for a
     puzzle, ``"007bbfb7_t3_012345678"`` for one of its augmented variants. Only ARC has more
     than ``["<blank>"]`` in it, so a missing file is unremarkable for every other task.
+
+    A Hub checkpoint never carries one, which is what ``--identifiers`` is for; without it the
+    file is looked for next to the weights.
     """
-    path = os.path.join(checkpoint_dir, "identifiers.json")
     if not os.path.isfile(path):
         return {}
 

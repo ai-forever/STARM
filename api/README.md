@@ -23,6 +23,7 @@ curl -s localhost:8080/generate -d '{"task": "sudoku", "input": "53..7....6..195
 | `--device`         | `cuda:1`, or just the index                                                      |
 | `--seq-len`        | Sequence length, when `all_config.yaml` does not have one                         |
 | `--vocab-map`      | Vocabulary, when the run's differs from those in [`api/vocab_maps/`](./vocab_maps) |
+| `--identifiers`    | ARC only: path to `identifiers.json`, when it is not next to the checkpoint |
 | `--task`           | Override the task detected from `data_path` in `all_config.yaml`                  |
 | `--no-ema`         | Load the base weights even when an EMA shadow is present                          |
 | `--revision`       | Hugging Face branch, tag or commit                                                |
@@ -51,13 +52,13 @@ ready;
 |----------------|----------------------------------------------------------------|
 | `sudoku`       | 81 cells row-major, `.` or `0` for blanks; whitespace ignored   |
 | `maze`         | Square grid of maze characters: rows, or one flat line          |
-| `arc`          | Grid of colour digits, rows separated by `<eos>` or newlines    |
+| `arc`          | Grid of colour digits up to 30×30: rows via `<eos>` or newlines |
 | `arithmetic`   | `3?5+2?7=42` — `?` marks each operator to recover               |
 | `game_of_life` | `bbo$obb\|3` — pattern, then the number of generations           |
 
 ARC additionally requires `puzzle_id` — the task id in ARC-AGI notation (`"007bbfb7"`) — which
-selects the learned puzzle embedding. Valid ids come from `identifiers.json`, which has to sit
-next to `all_config.yaml`.
+selects the learned puzzle embedding. Valid ids come from the `identifiers.json` written by the
+dataset build: it has to sit next to `all_config.yaml`, or be passed with `--identifiers`.
 
 Request examples for every task:
 

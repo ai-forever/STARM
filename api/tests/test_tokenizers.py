@@ -25,7 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from api.tokenizers.arc import MAX_GRID_SIZE  # noqa: E402
+from api.tokenizers.arc import CANVAS, MAX_GRID_SIZE  # noqa: E402
 from api.tokenizers import (  # noqa: E402
     TASKS,
     ArcTokenizer,
@@ -238,59 +238,65 @@ def test_maze_length_follows_the_grid():
 
 # -- arc -----------------------------------------------------------------------
 
-def test_arc_closes_every_row_with_eos():
-    """A sequence is the grid row-major, each row closed by EOS — no canvas, no padding."""
+def test_arc_uses_the_builders_canvas():
+    """The canvas is what makes ARC fixed-length: cells sit at absolute 30x30 positions."""
+    assert len(ArcTokenizer(ARC_MAP).encode("12\n34")) == CANVAS
+
+
+def test_arc_writes_eos_bounds():
     tok = ArcTokenizer(ARC_MAP)
-    assert tok.encode("12\n34").tokens.tolist() == [
-        ARC_MAP["1"], ARC_MAP["2"], ARC_MAP["<EOS>"],
-        ARC_MAP["3"], ARC_MAP["4"], ARC_MAP["<EOS>"],
-    ]
+    grid = tok.encode("12\n34").tokens.reshape(MAX_GRID_SIZE, MAX_GRID_SIZE)
+    assert grid[:2, :2].tolist() == [[ARC_MAP["1"], ARC_MAP["2"]], [ARC_MAP["3"], ARC_MAP["4"]]]
+    assert grid[2, :2].tolist() == [ARC_MAP["<EOS>"]] * 2  # EOS row below
+    assert grid[:2, 2].tolist() == [ARC_MAP["<EOS>"]] * 2  # EOS column to the right
+    assert grid[3, 3] == ARC_MAP["<PAD>"]                  # the rest of the canvas is pad
 
 
-def test_arc_accepts_eos_written_out():
+def test_arc_round_trip_recovers_shape():
+    """decode reads the canvas row-major with pad dropped, and encode takes that back."""
+    tok = ArcTokenizer(ARC_MAP)
+    encoded = tok.encode("0123\n4567\n8900")
+    text = tok.decode(encoded.tokens, encoded).text
+    assert text == "0123<EOS>4567<EOS>8900<EOS><EOS><EOS><EOS><EOS>"
+    assert tok.encode(text).tokens.tolist() == encoded.tokens.tolist()
+
+
+def test_arc_decodes_a_canvas_the_way_preds_files_read():
+    """A 4x9 grid, pad dropped, is exactly what a row of a .preds file looks like."""
+    tok = ArcTokenizer(ARC_MAP)
+    prompt = "444000777\n404440707\n400040777\n444440000"
+    encoded = tok.encode(prompt)
+    assert tok.decode(encoded.tokens, encoded).text == (
+        "444000777<EOS>404440707<EOS>400040777<EOS>444440000" + "<EOS>" * 10
+    )
+
+
+def test_arc_accepts_eos_separated_rows():
     """The wire format spells row breaks '<eos>'; newlines mean the same thing."""
     tok = ArcTokenizer(ARC_MAP)
-    assert tok.encode("444000777<eos>404440707").tokens.tolist() == \
+    assert tok.encode("444000777<eos>404440707<eos><eos><eos>").tokens.tolist() == \
         tok.encode("444000777\n404440707").tokens.tolist()
 
 
-def test_arc_ignores_a_trailing_run_of_eos():
-    """Sequences are filled out with EOS, so a tail of them is padding, not empty rows."""
+def test_arc_round_trip_full_canvas():
+    """A grid filling the canvas leaves no room for EOS markers."""
     tok = ArcTokenizer(ARC_MAP)
-    padded = "444000777<eos>404440707<eos><eos><eos><eos>"
-    assert tok.encode(padded).tokens.tolist() == tok.encode("444000777<eos>404440707").tokens.tolist()
+    text = "\n".join("1" * MAX_GRID_SIZE for _ in range(MAX_GRID_SIZE))
+    encoded = tok.encode(text)
+    assert ARC_MAP["<EOS>"] not in encoded.tokens.tolist()
+    assert tok.decode(encoded.tokens, encoded).text == "1" * CANVAS
 
 
-def test_arc_pads_a_batch_with_eos():
-    """The filler is EOS, the way the dataset's own sequences are padded."""
+def test_arc_pads_the_canvas_with_pad_not_eos():
     tok = ArcTokenizer(ARC_MAP)
-    batch = tok.pad_batch([tok.encode("12\n34")], 10)
-    assert batch[0].tolist()[-4:] == [ARC_MAP["<EOS>"]] * 4
-    assert ARC_MAP["<PAD>"] not in batch[0].tolist()
+    tokens = tok.encode("12\n34").tokens.tolist()
+    assert tok.fill_id == tok.pad_id
+    assert tokens.count(ARC_MAP["<PAD>"]) == CANVAS - 4 - 2 - 2
 
 
-def test_arc_round_trip():
+def test_arc_rejects_grid_larger_than_the_canvas():
     tok = ArcTokenizer(ARC_MAP)
-    encoded = tok.encode("0123\n4567\n8900")
-    decoded = tok.decode(encoded.tokens, encoded)
-    assert decoded.text == "0123<EOS>4567<EOS>8900<EOS>"
-    assert tok.encode(decoded.text).tokens.tolist() == encoded.tokens.tolist()
-
-
-def test_arc_decode_keeps_every_eos():
-    """Row breaks and the tail are the model's own tokens, shown rather than trimmed."""
-    tok = ArcTokenizer(ARC_MAP)
-    prompt = tok.encode("444000777<eos>404440707<eos>400040777<eos>444440000")
-    answer = [ARC_MAP[c] for c in "444"] + [ARC_MAP["<EOS>"]] + \
-             [ARC_MAP[c] for c in "400"] + [ARC_MAP["<EOS>"]] + \
-             [ARC_MAP[c] for c in "700"] + [ARC_MAP["<EOS>"]] * 4
-    assert tok.decode(np.array(answer), prompt).text == \
-        "444<EOS>400<EOS>700<EOS><EOS><EOS><EOS>"
-
-
-def test_arc_rejects_grid_taller_than_the_maximum():
-    tok = ArcTokenizer(ARC_MAP)
-    with pytest.raises(TokenizerError, match="maximum"):
+    with pytest.raises(TokenizerError, match="canvas"):
         tok.encode("\n".join("1" * (MAX_GRID_SIZE + 1) for _ in range(2)))
 
 
@@ -302,7 +308,7 @@ def test_arc_accepts_separated_cells():
 def test_arc_reports_an_all_pad_prediction():
     tok = ArcTokenizer(ARC_MAP)
     prompt = tok.encode("12\n34")
-    assert tok.decode(np.full(6, ARC_MAP["<PAD>"]), prompt).text == ""
+    assert tok.decode(np.full(CANVAS, ARC_MAP["<PAD>"]), prompt).text == ""
 
 
 @pytest.mark.parametrize("bad", ["", "12\n345", "1a\n34", "12 34\n56 78"])
@@ -366,7 +372,7 @@ def test_arc_accepts_lower_case_specials():
     encoded = tok.encode(grid)
     assert encoded.tokens.tolist() == ArcTokenizer(ARC_MAP).encode(grid).tokens.tolist()
     # decode answers in the map's own spelling.
-    assert tok.decode(encoded.tokens, encoded).text == "077<eos>770<eos>077<eos>"
+    assert tok.decode(encoded.tokens, encoded).text == "077<eos>770<eos>077" + "<eos>" * 4
 
 
 def test_find_token_prefers_an_exact_match():

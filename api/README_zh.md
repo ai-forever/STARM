@@ -23,6 +23,7 @@ curl -s localhost:8080/generate -d '{"task": "sudoku", "input": "53..7....6..195
 | `--device`         | `cuda:1`，或只写下标                                           |
 | `--seq-len`        | 序列长度，用于 `all_config.yaml` 中没有该值时                    |
 | `--vocab-map`      | 词表，用于该次训练的词表与 [`api/vocab_maps/`](./vocab_maps) 中的不同时 |
+| `--identifiers`    | 仅 ARC：`identifiers.json` 的路径，用于该文件不在检查点旁边时      |
 | `--task`           | 覆盖依据 `all_config.yaml` 中 `data_path` 判定出的任务           |
 | `--no-ema`         | 即使存在 EMA 影子，也加载基础权重                                |
 | `--revision`       | Hugging Face 的分支、标签或提交                                  |
@@ -50,12 +51,13 @@ curl -s localhost:8080/generate -d '{"task": "sudoku", "input": "53..7....6..195
 |----------------|---------------------------------------------------------|
 | `sudoku`       | 按行排列的 81 个单元格，空格用 `.` 或 `0`；空白字符被忽略 |
 | `maze`         | 由迷宫字符组成的方形网格：分行书写，或写成一整行           |
-| `arc`          | 颜色数字组成的网格，各行以 `<eos>` 或换行分隔              |
+| `arc`          | 最大 30×30 的颜色数字网格：各行以 `<eos>` 或换行分隔        |
 | `arithmetic`   | `3?5+2?7=42`——`?` 标出每个待恢复的运算符                  |
 | `game_of_life` | `bbo$obb\|3`——先是图案，然后是代数                        |
 
 ARC 还需要 `puzzle_id`——采用 ARC-AGI 记法的任务 id（`"007bbfb7"`），用于选中学到的 puzzle
-嵌入。合法 id 来自 `identifiers.json`，该文件必须与 `all_config.yaml` 放在一起。
+嵌入。合法 id 来自数据集构建写出的 `identifiers.json`：该文件必须与 `all_config.yaml` 放在
+一起，或通过 `--identifiers` 传入。
 
 各任务的请求示例：
 

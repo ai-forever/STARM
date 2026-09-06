@@ -86,6 +86,14 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--identifiers",
+        help=(
+            "ARC only: the identifiers.json the dataset build wrote — the list of task ids "
+            "puzzle_id is resolved against. Looked for next to the checkpoint when omitted, "
+            "which a Hugging Face repo never carries"
+        ),
+    )
+    parser.add_argument(
         "--no-ema",
         action="store_true",
         help="Load the base weights even when an EMA shadow is present",
@@ -202,7 +210,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 1
 
     try:
-        engine = StarmEngine(loaded, tokenizer)
+        engine = StarmEngine(loaded, tokenizer, identifiers_file=args.identifiers)
     except TokenizerError as exc:
         # An ARC checkpoint with no identifiers.json cannot resolve a single task id.
         logger.error("%s", exc)
