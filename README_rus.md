@@ -1,16 +1,21 @@
-# STARM: Single Task Algorithmic Reasoning Models
+<h1 align="center">STARM: Single Task Algorithmic Reasoning Models</h1>
+
+<p align="center">
+  <img src="./assets/STARM_rus.png" width="90%" alt="Схема архитектуры">
+</p>
+
+<p align="center">
+  <a href="https://arxiv.org/abs/2609.39967"><img src="https://img.shields.io/badge/Paper-arXiv-red?logo=arxiv&logoColor=white" alt="arXiv Paper"></a>
+  <a href="https://habr.com/ru/companies/sberbank/articles/1069794/"><img src="https://img.shields.io/badge/Blog-Habr-65A3BE" alt="Habr article"></a>
+</p>
 
 STARM - это рекурсивная архитектура для решения алгоритмических задач. Небольшая модель многократно применяет один и тот
 же вычислительный блок, постепенно уточняя латентное представление решения. Такой подход позволяет обходить модели с
 существенно бо́льшим числом параметров на задачах, требующих строгого следования алгоритму.
 
-![](./assets/STARM_rus.png)
-
 Основные результаты: STARM превосходит специализированный трансформер того же размера и демонстрирует лучшую способность
 к обобщению за пределы обучающего распределения. На нескольких доменах модель превосходит LLM с существенно бо́льшим
 числом параметров.
-
-📖 [Полная версия статьи](https://habr.com/ru/companies/sberbank/articles/1069794/)
 
 🇬🇧 [README на английском](./README.md) | 🇨🇳 [README на китайском](./README_zh.md)
 

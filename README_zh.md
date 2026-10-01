@@ -1,12 +1,17 @@
-# STARM: Single Task Algorithmic Reasoning Models
+<h1 align="center">STARM: Single Task Algorithmic Reasoning Models</h1>
+
+<p align="center">
+  <img src="./assets/STARM_zh.png" width="90%" alt="架构示意图">
+</p>
+
+<p align="center">
+  <a href="https://arxiv.org/abs/2609.39967"><img src="https://img.shields.io/badge/Paper-arXiv-red?logo=arxiv&logoColor=white" alt="arXiv Paper"></a>
+  <a href="https://habr.com/ru/companies/sberbank/articles/1069794/"><img src="https://img.shields.io/badge/Blog-Habr-65A3BE" alt="Habr article"></a>
+</p>
 
 STARM 是一种用于求解算法类任务的循环架构。一个小型模型反复应用同一个计算块，逐步细化解的潜在表示。这种方式使其能够在需要严格遵循算法的任务上，超越参数量大得多的模型。
 
-![](./assets/STARM_zh.png)
-
 主要结果：STARM 超越了同等规模的专用 Transformer，并展现出更强的分布外泛化能力。在多个领域中，该模型的表现优于参数量大得多的 LLM。
-
-📖 [文章完整版（俄文）](https://habr.com/ru/companies/sberbank/articles/1069794/)
 
 🇬🇧 [英文 README](./README.md) | 🇷🇺 [俄文 README](./README_rus.md)
 
