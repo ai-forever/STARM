@@ -1,15 +1,20 @@
-# STARM: Single Task Algorithmic Reasoning Models
+<h1 align="center">STARM: Single Task Algorithmic Reasoning Models</h1>
+
+<p align="center">
+  <img src="./assets/STARM_en.png" width="90%" alt="Architecture">
+</p>
+
+<p align="center">
+  <a href="https://arxiv.org/abs/2609.39967"><img src="https://img.shields.io/badge/Paper-arXiv-red?logo=arxiv&logoColor=white" alt="arXiv Paper"></a>
+  <a href="https://habr.com/ru/companies/sberbank/articles/1069794/"><img src="https://img.shields.io/badge/Blog-Habr-65A3BE" alt="Habr article"></a>
+</p>
 
 STARM is a recurrent architecture for solving algorithmic tasks. A small model repeatedly applies the same computational
 block, gradually refining the latent representation of the solution. This approach makes it possible to outperform models
 with substantially more parameters on tasks that require strict adherence to an algorithm.
 
-![](./assets/STARM_en.png)
-
 Key results: STARM outperforms a specialized transformer of the same size and shows a better ability to generalize
 beyond the training distribution. Across several domains the model outperforms LLMs with substantially more parameters.
-
-📖 [Full version of the article (in Russian)](https://habr.com/ru/companies/sberbank/articles/1069794/)
 
 🇷🇺 [README in Russian](./README_rus.md) | 🇨🇳 [中文 README](./README_zh.md)
 
